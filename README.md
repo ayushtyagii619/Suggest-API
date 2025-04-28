@@ -1,6 +1,6 @@
 # Suggestor_API
 
-A Django REST API that analyzes text messages using OpenAI's GPT-3.5-turbo to determine tone and intent, then suggests relevant actions.
+A Django REST API that analyzes text messages using gemini-1.5-pro-latest to determine tone and intent, then suggests relevant actions.
 
 ## Features
 
@@ -77,4 +77,4 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
   LLM_API_KEY: Your OpenAI API key (required)
 
 # LLM Provider
-This project uses OpenAI's GPT-3.5-turbo model for text analysis.
+This project uses gemini-1.5-pro-latest for text analysis.
