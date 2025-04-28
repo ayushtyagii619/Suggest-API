@@ -14,11 +14,13 @@ genai.configure(api_key=os.getenv("LLM_API_KEY"))
 
 
 ACTIONS = {
-    "ORDER_FOOD": "Order Food Online",
-    "FIND_RECIPE": "Find Food Recipes",
-    "ASK_HELP": "Ask for Help",
-    "SHARE_NEWS": "Share Some News",
+    "FIND_NEARBY_PIZZERIA": "Find nearby pizza restaurants",
+    "PLACE_ONLINE_ORDER": "Place an online pizza order",
+    "BROWSE_PIZZA_MENU": "Browse pizza menus",
+    "ASK_FOR_HELP": "Ask for help",
+    "SHARE_FOOD_NEWS": "Share latest food news",
 }
+
 
 class Suggest_View(APIView):
 
@@ -50,13 +52,13 @@ class Suggest_View(APIView):
             suggestions = []
             if intent:
                 if "order" in intent.lower():
-                    suggestions.append({"action_code": "ORDER_FOOD", "display_text": ACTIONS["ORDER_FOOD"]})
-                if "recipe" in intent.lower():
-                    suggestions.append({"action_code": "FIND_RECIPE", "display_text": ACTIONS["FIND_RECIPE"]})
-                if "help" in intent.lower():
-                    suggestions.append({"action_code": "ASK_HELP", "display_text": ACTIONS["ASK_HELP"]})
-                if "news" in intent.lower():
-                    suggestions.append({"action_code": "SHARE_NEWS", "display_text": ACTIONS["SHARE_NEWS"]})
+                    suggestions.append({"action_code": "PLACE_ONLINE_ORDER", "display_text": "Place an online pizza order"})
+                    suggestions.append({"action_code": "FIND_NEARBY_PIZZERIA", "display_text": "Find nearby pizza restaurants"})
+                    suggestions.append({"action_code": "BROWSE_PIZZA_MENU", "display_text": "Browse pizza menus"})
+                elif "help" in intent.lower():
+                    suggestions.append({"action_code": "ASK_FOR_HELP", "display_text": "Ask for help"})
+                elif "news" in intent.lower():
+                    suggestions.append({"action_code": "SHARE_FOOD_NEWS", "display_text": "Share latest food news"})
 
             
             query_log = QueryLog.objects.create(
@@ -65,10 +67,18 @@ class Suggest_View(APIView):
                 intent=intent,
                 suggested_actions=suggestions
             )
+            final_response = {
+                "query": query,
+                "analysis": {
+                    "tone": tone,
+                    "intent": intent
+                },
+                "suggested_actions": suggestions
+            }
 
-            serializer = QueryLogSerializer(query_log)
+            
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(final_response, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
