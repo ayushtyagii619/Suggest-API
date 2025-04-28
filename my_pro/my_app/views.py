@@ -1,13 +1,16 @@
+
 import os
-import openai
+import google.generativeai as genai
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import QueryLog
 from .serializers import QueryLogSerializer
+import re
+import json
 
-
-openai.api_key = os.getenv("LLM_API_KEY")
+# Load Gemini API Key from .env
+genai.configure(api_key=os.getenv("LLM_API_KEY"))
 
 
 ACTIONS = {
@@ -25,22 +28,25 @@ class Suggest_View(APIView):
             return Response({"error": "Query is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that detects tone and intent."},
-                    {"role": "user", "content": f"Analyze the tone and intent of: '{query}'. Reply in JSON format: {{'tone':'Tone','intent':'Intent'}}"}
-                ],
-                temperature=0.3,
-                max_tokens=100
+            model = genai.GenerativeModel(model_name="gemini-1.5-pro-latest")
+
+            response = model.generate_content(
+                f"Analyze the following message for tone and intent: '{query}'. "
+                f"Reply in JSON format like this: {{'tone':'Tone','intent':'Intent'}}"
             )
 
-            result_text = response['choices'][0]['message']['content']
-            result = eval(result_text)  
+            result_text = response.text.strip()
+            match = re.search(r"\{.*\}", result_text, re.DOTALL)
+            if match:
+                json_text = match.group(0)
+                result = json.loads(json_text.replace("'", '"'))  
+            else:
+                return Response({"error": "Invalid response format from Gemini"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             tone = result.get('tone')
             intent = result.get('intent')
 
+            
             suggestions = []
             if intent:
                 if "order" in intent.lower():
@@ -52,7 +58,7 @@ class Suggest_View(APIView):
                 if "news" in intent.lower():
                     suggestions.append({"action_code": "SHARE_NEWS", "display_text": ACTIONS["SHARE_NEWS"]})
 
-            # Save to Database
+            
             query_log = QueryLog.objects.create(
                 query=query,
                 tone=tone,
